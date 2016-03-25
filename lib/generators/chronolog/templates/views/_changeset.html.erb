@@ -1,0 +1,27 @@
+<ul class="changeset-list">
+  <% changeset.each do |field, (removed, added)| %>
+    <li>
+      <p class="changeset-label"><strong><%= field.titleize %></strong></p>
+
+      <ul class="changeset-items">
+        <% Array(added).each do |addition| %>
+          <li>
+            <p class="changeset-item">
+              <span class="status_tag green">Added</span>
+              <%= addition %>
+            </p>
+          </li>
+        <% end %>
+
+        <% Array(removed).each do |deletion| %>
+          <li>
+            <p class="changeset-item">
+              <span class="status_tag red">Removed</span>
+              <%= deletion %>
+            </p>
+          </li>
+        <% end %>
+      </ul>
+    </li>
+  <% end %>
+</ul>
