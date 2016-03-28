@@ -28,14 +28,6 @@ RSpec.describe Chronolog::ChangeTracker do
     end
   end
 
-  describe "#create_changeset" do
-    subject { described_class.new(params) }
-
-    it "creates a new changeset" do
-      expect { subject.create_changeset }.to change { Chronolog::Changeset.count }.by 1
-    end
-  end
-
   describe "#changeset" do
     subject { described_class.new(params) }
 
@@ -50,8 +42,8 @@ RSpec.describe Chronolog::ChangeTracker do
         params[:action] = 'craziness'
       end
 
-      it "does not create a changeset" do
-        expect { subject.changeset }.to_not change { Chronolog::Changeset.count }
+      it "raises an error" do
+        expect { subject.changeset }.to raise_error ActiveRecord::RecordInvalid
       end
     end
   end

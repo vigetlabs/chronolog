@@ -45,7 +45,7 @@ module Chronolog
                 )
               end
 
-              Chronolog::ChangeTracker.new(changeset_attrs).create_changeset
+              Chronolog::ChangeTracker.new(changeset_attrs).changeset
             end
           end
         end

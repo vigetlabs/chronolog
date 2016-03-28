@@ -16,16 +16,12 @@ module Chronolog
       @new_state  = options[:new_state] || {}
     end
 
-    def create_changeset
-      changeset.save! if changeset
-    end
-
     def changes
       @changes ||= Differ.diff(old_state, new_state)
     end
 
     def changeset
-      @changeset ||= Changeset.create(
+      @changeset ||= Changeset.create!(
         action:     action,
         admin_user: admin_user,
         changeable: target,
