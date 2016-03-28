@@ -2,10 +2,6 @@
 
 A library that adds diff-powered change tracking to Rails projects with ActiveAdmin + Devise.
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/chronolog`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
-
 ## Dependencies
 
 * Ruby 2.0+
@@ -33,7 +29,14 @@ Then install the gem to your Rails project via:
 
     $ rails g chronolog:install
 
-This will create the necessary models, migrations, and initializers for Chronolog.
+This will create the following files:
+
+* Changeset model (`app/models/chronolog/changeset.rb`)
+* Changeset migration (`db/migrate/*_create_chronolog_changesets.rb`)
+* Chronolog initializer (`config/initializers/chronolog.rb`)
+* ActiveAdmin Changeset resource (`app/admin/changeset.rb`)
+* Changeset view partial for ActiveAdmin (`app/views/admin/changesets/_changeset.html.erb`)
+* Chronolog admin helper (`app/helpers/active_admin/chronolog_helper.rb`)
 
 ## Usage
 
@@ -44,9 +47,21 @@ ActiveAdmin.register Post do
 end
 ```
 
-We recommend adding the following to your dashboard:
+Any time a resource with `track_changes` is created, updated, or deleted, Chronolog will generate a `Chronolog::Changeset` record.  Each of these changesets captures the following information:
 ```ruby
-# TODO
+changeset = Chronolog::Changeset.first
+
+changeset.changeable # Returns the record changed unless it has been deleted
+changeset.identifier # Always returns a string capturing the object's #to_s and class type at the time of the change
+changeset.action     # Returns the change action -- either create, update, or destroy
+changeset.changeset  # Returns a hash that captures diff'd attributes/associations/methods and their previous and current values
+changeset.admin_user # Returns the AdminUser that made the change unless it has been deleted
+changeset.created_at # Timestamp for when the change occurred
+```
+
+It's recommended that any resource you include `track_changes` on should have a `#to_s` implementation as it's used to generate an identifier string for the record and model-type on any changeset.  Without `#to_s`, you'll get a Ruby object pointer in the changeset identifier:
+```ruby
+#<SomeClass:0x007fcfdc650640> (Some Class)
 ```
 
 To query the admin user that either created or last modified a record, include `Chronolog::Changesets` in the model definition:
@@ -66,12 +81,37 @@ Post.first.last_modified_by #=> #<AdminUser>
 
 ### Diff Attributes
 
-Probably the most important model-level customization involves defining `diff_attributes`.  Chronolog has a sensible default for determining what attributes and associations to diff when tracking changes; however, there are definitely cases where you'll want to modify the set of attributes/associations.
+Probably the most important model-level customization involves defining `diff_attributes`.  Chronolog has a sensible default for determining what attributes and associations to diff when tracking changes:
 
-Here's an example:
+* Ignore `id`, `created_at`, and `updated_at` attributes
+* Include any `belongs_to` dependencies
+
+These defaults won't work for every case.  Chronolog provides an interface for overriding what attributes, associations, and methods are evaluated when generating a changeset.  Here's an example demonstrating the three options (ignored attributes, included associations, and methods to diff):
 ```ruby
-# TODO Example
+class Post < ActiveRecord::Base
+  has_many :tags
+
+  validates :title, :body, :published_date, presence: true
+
+  def to_s
+    "#{title} (Published on #{published_date.strftime('%A %B %e, %Y')})"
+  end
+
+  def diff_attributes
+    Chronolog::DiffRepresentation.new(self,
+      ignore:  %i(published_date),
+      include: %i(tags),
+      methods: $i(to_s)
+    )
+  end
+end
 ```
+
+This would result in the following:
+
+* Exclude `published_date` from the diff
+* Include a post's associated tags in its diff (will use `Tag#diff_attributes` if defined, otherwise it will use Chronolog's default)
+* Include the post's `#to_s` in the changeset
 
 ### Databases without the JSON Column Type
 
