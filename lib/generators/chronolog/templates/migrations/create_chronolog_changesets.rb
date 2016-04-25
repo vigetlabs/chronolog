@@ -8,7 +8,7 @@ class CreateChronologChangesets < ActiveRecord::Migration
       t.string  :action,          null: false
       t.string  :identifier,      null: false
 
-      t.foreign_key :admin_users, dependent: :nullify
+      t.foreign_key :admin_users, on_delete: :nullify
 
       t.timestamps
     end
